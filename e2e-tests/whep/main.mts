@@ -109,14 +109,30 @@ class WhepClient {
 
     const whepEndpointUrl = `${this.endpointUrl}/${this.channelId}`
 
-    const response = await fetch(whepEndpointUrl, {
+    let response = await fetch(whepEndpointUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.secretKey}`,
         'Content-Type': 'application/sdp',
       },
       body: offer.sdp,
+      redirect: 'manual',
     })
+
+    if (response.status === 307) {
+      const location = response.headers.get('Location')
+      if (!location) {
+        throw new Error('Location header not found')
+      }
+      response = await fetch(location, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.secretKey}`,
+          'Content-Type': 'application/sdp',
+        },
+        body: offer.sdp,
+      })
+    }
 
     if (response.status !== 201) {
       throw new Error('Failed to create resource')
